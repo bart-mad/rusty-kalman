@@ -1,5 +1,33 @@
 use rand::Rng;
-use plotters::prelude::*;
+use plotters::{prelude::*, style::full_palette::PURPLE};
+
+#[derive(Clone)]
+struct Gaussian {
+
+    mean: f64,
+    variance: f64,
+}
+
+
+fn update(prior: &Gaussian, x_measured: f64, measurement_variance: f64) -> Gaussian{
+
+    let mut update: Gaussian = prior.clone();
+    update.mean = (prior.variance * x_measured + measurement_variance * prior.mean)/(prior.variance + measurement_variance);
+    update.variance = (prior.variance * measurement_variance)/(prior.variance + measurement_variance);
+
+    update
+}
+
+fn predict(prior: &Gaussian, velocity: f64, dt: f64, model_variance: f64) -> Gaussian{
+
+    let mut predicted: Gaussian = prior.clone();
+    predicted.mean = prior.mean + velocity * dt;
+    predicted.variance = prior.variance + model_variance;
+
+    predicted
+
+}
+
 
 fn main() -> Result<(), Box<dyn std::error::Error>>{
 
@@ -9,14 +37,10 @@ fn main() -> Result<(), Box<dyn std::error::Error>>{
 
     let V_0: f64 = 10.;
     let x_0: f64 = 0.;
-    let process_variance: f64 = 0.01;
+    let process_variance: f64 = 0.0001;
     let process_noise: f64 = process_variance.sqrt();
 
     let mut rng: rand::prelude::ThreadRng = rand::rng();
-
-    println!("dt {} -> T {}",dt,T);
-    println!("V_0 {} -> N_samples {}",V_0,N_samples);
-
 
     let mut X: Vec<f64> = Vec::new();
     let mut V: Vec<f64> = Vec::new();
@@ -26,15 +50,69 @@ fn main() -> Result<(), Box<dyn std::error::Error>>{
 
     for n in 1..=N_samples{
 
-        let v: f64 = V[(n-1) as usize] + (rng.random_range(-1..1) as f64) * process_variance;
+        let v: f64 = V[(n-1) as usize] + (rng.random_range(-1..1) as f64) * process_noise;
         let x: f64 = X[(n-1) as usize] + v * dt;
 
         X.push(x);
         V.push(v);
 
-        println!("{}",x);
-        println!("{}",v);
     }
+
+
+// Measurement model
+
+let measurement_variance: f64 = 100.;
+let measurement_noise: f64 = measurement_variance.sqrt();
+
+
+let mut X_measured: Vec<f64> = Vec::new();
+
+for n in 0..=N_samples{
+
+    let x: f64 = X[(n) as usize] + (rng.random_range(-measurement_noise..measurement_noise) as f64); //* measurement_noise;
+
+    X_measured.push(x);
+
+}
+
+
+// Kalman
+
+// Initial state estimation
+
+let x_prior: f64 = 1.;
+let v_model: f64 = 9.0;
+let model_variance: f64 = 3.;
+
+let mut X_result: Vec<f64> = Vec::new();
+
+
+let mut posterior = Gaussian{
+            mean: 0.,
+            variance: 0.,
+        };
+let mut prior = Gaussian{
+    mean: x_prior,
+    variance: 0.,
+};
+
+
+posterior = update(&prior,X_measured[0],measurement_variance);
+
+X_result.push(posterior.mean);
+
+prior = posterior.clone();
+
+
+for n in 1..=N_samples{
+
+    prior = predict(&prior,v_model,dt,model_variance);
+    posterior = update(&prior,X_measured[n as usize], measurement_variance);
+
+    X_result.push(posterior.mean);
+
+    prior = posterior.clone();
+}
 
      // Create a 800*600 bitmap and start drawing
      let mut backend = BitMapBackend::new("results.png", (800, 600)).into_drawing_area();
@@ -80,6 +158,25 @@ fn main() -> Result<(), Box<dyn std::error::Error>>{
         &BLUE,
     ))?;
 
+    // And we can draw something in the drawing area
+    let mut sample: f64 = 0.;
+    chart.draw_series(LineSeries::new(
+        X_measured.into_iter().map(|x| {
+            sample += 1.0;
+            return (sample, x)
+        }),
+        &GREEN,
+    ))?;
+
+    // And we can draw something in the drawing area
+        let mut sample: f64 = 0.;
+        chart.draw_series(LineSeries::new(
+            X_result.into_iter().map(|x| {
+                sample += 1.0;
+                return (sample, x)
+            }),
+            &PURPLE,
+        ))?;
 
      backend.present()?;
      Ok(())
