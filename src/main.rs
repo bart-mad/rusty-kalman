@@ -1,3 +1,5 @@
+#![allow(non_snake_case)]
+
 use rand::Rng;
 use plotters::{prelude::*, style::full_palette::PURPLE};
 
@@ -86,18 +88,13 @@ let model_variance: f64 = 3.;
 
 let mut X_result: Vec<f64> = Vec::new();
 
-
-let mut posterior = Gaussian{
-            mean: 0.,
-            variance: 0.,
-        };
-let mut prior = Gaussian{
+let mut prior: Gaussian = Gaussian{
     mean: x_prior,
     variance: 0.,
 };
 
 
-posterior = update(&prior,X_measured[0],measurement_variance);
+let mut posterior: Gaussian = update(&prior,X_measured[0],measurement_variance);
 
 X_result.push(posterior.mean);
 
@@ -115,9 +112,9 @@ for n in 1..=N_samples{
 }
 
      // Create a 800*600 bitmap and start drawing
-     let mut backend = BitMapBackend::new("results.png", (800, 600)).into_drawing_area();
+     let backend = BitMapBackend::new("results.png", (800, 600)).into_drawing_area();
 
-     backend.fill(&WHITE);
+     let _ = backend.fill(&WHITE);
      let backend = backend.margin(10, 10, 10, 10);
 
      let mut chart = ChartBuilder::on(&backend)
