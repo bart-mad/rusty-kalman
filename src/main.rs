@@ -34,7 +34,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     let V_0: f64 = 10.;
     let x_0: f64 = 0.;
-    let process_variance: f64 = 0.0001;
+    let process_variance: f64 = 0.00001;
     let process_noise: f64 = process_variance.sqrt();
 
     let mut rng: rand::prelude::ThreadRng = rand::rng();
@@ -55,7 +55,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     // Measurement model
 
-    let measurement_variance: f64 = 100.;
+    let measurement_variance: f64 = 200.;
     let measurement_noise: f64 = measurement_variance.sqrt();
 
     let mut X_measured: Vec<f64> = Vec::new();
@@ -110,7 +110,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         .x_label_area_size(40)
         .y_label_area_size(80)
         // Finally attach a coordinate on the drawing area and make a chart context
-        .build_cartesian_2d(0f64..1000f64, 0f64..100f64)?;
+        .build_cartesian_2d(0 as f64..N_samples as f64, 0f64..300f64)?;
 
     // Then we can draw a mesh
     chart
